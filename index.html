@@ -11,12 +11,13 @@
       padding: 0;
       height: 100%;
       font-family: sans-serif;
+      background: #111;
+      color: white;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #111;
-      color: white;
     }
     #menu, #gameOverScreen {
       display: none;
@@ -27,6 +28,7 @@
     canvas {
       background: black;
       border: 2px solid white;
+      display: block;
     }
     input, button {
       padding: 8px;
@@ -35,6 +37,26 @@
     }
     #scoreboard {
       margin: 10px;
+    }
+    #joystick {
+      position: absolute;
+      bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .joy-row {
+      display: flex;
+    }
+    .joy-btn {
+      width: 50px;
+      height: 50px;
+      margin: 5px;
+      background: #444;
+      border: 2px solid #888;
+      border-radius: 10px;
+      color: white;
+      font-size: 20px;
     }
   </style>
 </head>
@@ -45,13 +67,22 @@
     <button onclick="startGame()">▶️ Play</button>
   </div>
 
-  <canvas id="game" width="400" height="400"></canvas>
+  <canvas id="game"></canvas>
   <div id="scoreboard">Skor: 0 | Coin: 0</div>
 
   <div id="gameOverScreen">
     <h2>Game Over</h2>
     <p id="finalScore"></p>
     <button onclick="restart()">🔄 Retry</button>
+  </div>
+
+  <div id="joystick">
+    <div class="joy-row"><button class="joy-btn" onclick="setDir(0,-1)">⬆</button></div>
+    <div class="joy-row">
+      <button class="joy-btn" onclick="setDir(-1,0)">⬅</button>
+      <button class="joy-btn" onclick="setDir(1,0)">➡</button>
+    </div>
+    <div class="joy-row"><button class="joy-btn" onclick="setDir(0,1)">⬇</button></div>
   </div>
 
   <audio id="eatSound" src="assets/eat.mp3"></audio>
@@ -68,7 +99,7 @@
 
     let gridSize = 20;
     let tileCount = 20;
-    let snake, fruit, coin, velocity, score, coins, isGameOver, playerName;
+    let snake, fruit, coin, velocity, score, coins, eatenFruits, isGameOver, playerName;
 
     const eatSound = document.getElementById("eatSound");
     const gameOverSound = document.getElementById("gameOverSound");
@@ -82,10 +113,11 @@
     function init() {
       snake = [{ x: 10, y: 10 }];
       fruit = { x: 5, y: 5 };
-      coin = { x: 15, y: 15 };
+      coin = null;
       velocity = { x: 0, y: 0 };
       score = 0;
       coins = 0;
+      eatenFruits = 0;
       isGameOver = false;
     }
 
@@ -123,11 +155,15 @@
 
       if (head.x === fruit.x && head.y === fruit.y) {
         score++;
+        eatenFruits++;
         eatSound.play();
         fruit = { x: Math.floor(Math.random() * tileCount), y: Math.floor(Math.random() * tileCount) };
-      } else if (head.x === coin.x && head.y === coin.y) {
+        if (eatenFruits % 10 === 0) {
+          coin = { x: Math.floor(Math.random() * tileCount), y: Math.floor(Math.random() * tileCount) };
+        }
+      } else if (coin && head.x === coin.x && head.y === coin.y) {
         coins++;
-        coin = { x: Math.floor(Math.random() * tileCount), y: Math.floor(Math.random() * tileCount) };
+        coin = null;
       } else {
         snake.pop();
       }
@@ -139,7 +175,10 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       ctx.drawImage(fruitImage, fruit.x * gridSize, fruit.y * gridSize, gridSize, gridSize);
-      ctx.drawImage(coinImage, coin.x * gridSize, coin.y * gridSize, gridSize, gridSize);
+
+      if (coin) {
+        ctx.drawImage(coinImage, coin.x * gridSize, coin.y * gridSize, gridSize, gridSize);
+      }
 
       ctx.fillStyle = "lime";
       snake.forEach(seg => ctx.fillRect(seg.x * gridSize, seg.y * gridSize, gridSize, gridSize));
@@ -147,17 +186,22 @@
       scoreboard.innerText = `Nama: ${playerName || "Guest"} | Skor: ${score} | Coin: ${coins}`;
     }
 
+    function setDir(x, y) {
+      if ((velocity.x !== 0 && x !== 0) || (velocity.y !== 0 && y !== 0)) return;
+      velocity = { x, y };
+    }
+
     document.addEventListener("keydown", (e) => {
       switch (e.key) {
-        case "ArrowUp": if (velocity.y === 0) velocity = { x: 0, y: -1 }; break;
-        case "ArrowDown": if (velocity.y === 0) velocity = { x: 0, y: 1 }; break;
-        case "ArrowLeft": if (velocity.x === 0) velocity = { x: -1, y: 0 }; break;
-        case "ArrowRight": if (velocity.x === 0) velocity = { x: 1, y: 0 }; break;
+        case "ArrowUp": setDir(0, -1); break;
+        case "ArrowDown": setDir(0, 1); break;
+        case "ArrowLeft": setDir(-1, 0); break;
+        case "ArrowRight": setDir(1, 0); break;
       }
     });
 
     function resizeCanvas() {
-      const min = Math.min(window.innerWidth, window.innerHeight) - 40;
+      const min = Math.min(window.innerWidth, window.innerHeight) - 60;
       canvas.width = min;
       canvas.height = min;
       gridSize = min / tileCount;
