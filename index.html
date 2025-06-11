@@ -1,153 +1,91 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Snake Fruit Game</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      height: 100%;
-      font-family: sans-serif;
-      background: #111;
-      color: white;
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-    #menu, #gameOverScreen {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      height: 100%;
+      background: #000;
     }
     canvas {
-      background: black;
-      border: 2px solid white;
       display: block;
+      margin: auto;
     }
-    input, button {
-      padding: 8px;
-      margin: 5px;
-      font-size: 16px;
-    }
-    #scoreboard {
-      margin: 10px;
-    }
-    #joystick {
+    #nipple-container {
       position: absolute;
       bottom: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .joy-row {
-      display: flex;
-    }
-    .joy-btn {
-      width: 50px;
-      height: 50px;
-      margin: 5px;
-      background: #444;
-      border: 2px solid #888;
-      border-radius: 10px;
-      color: white;
-      font-size: 20px;
+      left: 20px;
+      width: 150px;
+      height: 150px;
+      z-index: 999;
     }
   </style>
 </head>
 <body>
-  <div id="menu">
-    <h1>Snake Fruit Game</h1>
-    <input id="playerName" placeholder="Masukkan nama kamu" />
-    <button onclick="startGame()">▶️ Play</button>
-  </div>
-
   <canvas id="game"></canvas>
-  <div id="scoreboard">Skor: 0 | Coin: 0</div>
+  <div id="nipple-container"></div>
 
-  <div id="gameOverScreen">
-    <h2>Game Over</h2>
-    <p id="finalScore"></p>
-    <button onclick="restart()">🔄 Retry</button>
-  </div>
-
-  <div id="joystick">
-    <div class="joy-row"><button class="joy-btn" onclick="setDir(0,-1)">⬆</button></div>
-    <div class="joy-row">
-      <button class="joy-btn" onclick="setDir(-1,0)">⬅</button>
-      <button class="joy-btn" onclick="setDir(1,0)">➡</button>
-    </div>
-    <div class="joy-row"><button class="joy-btn" onclick="setDir(0,1)">⬇</button></div>
-  </div>
-
-  <audio id="eatSound" src="assets/eat.mp3"></audio>
-  <audio id="gameOverSound" src="assets/gameover.mp3"></audio>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
 
-    const menu = document.getElementById("menu");
-    const gameOverScreen = document.getElementById("gameOverScreen");
-    const scoreboard = document.getElementById("scoreboard");
-    const finalScore = document.getElementById("finalScore");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    let gridSize = 20;
-    let tileCount = 20;
-    let snake, fruit, coin, velocity, score, coins, eatenFruits, isGameOver, playerName;
+    const gridSize = 20;
+    const tileCountX = Math.floor(canvas.width / gridSize);
+    const tileCountY = Math.floor(canvas.height / gridSize);
 
-    const eatSound = document.getElementById("eatSound");
-    const gameOverSound = document.getElementById("gameOverSound");
+    let snake = [{ x: 10, y: 10 }];
+    let fruit = { x: 15, y: 15 };
+    let velocity = { x: 0, y: 0 };
+    let score = 0;
 
-    const fruitImage = new Image();
-    fruitImage.src = "https://cdn-icons-png.flaticon.com/512/590/590685.png";
+    const backgroundImg = new Image();
+    backgroundImg.src = "foto.png";
 
-    const coinImage = new Image();
-    coinImage.src = "https://cdn-icons-png.flaticon.com/512/138/138292.png";
-
-    function init() {
-      snake = [{ x: 10, y: 10 }];
-      fruit = { x: 5, y: 5 };
-      coin = null;
-      velocity = { x: 0, y: 0 };
-      score = 0;
-      coins = 0;
-      eatenFruits = 0;
-      isGameOver = false;
+    function drawBackground() {
+      ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
     }
 
-    function startGame() {
-      playerName = document.getElementById("playerName").value || "Guest";
-      menu.style.display = "none";
-      canvas.style.display = "block";
-      scoreboard.style.display = "block";
-      init();
+    function drawGame() {
+      drawBackground();
+
+      // Gambar ular
+      ctx.fillStyle = "lime";
+      snake.forEach((seg) => {
+        ctx.fillRect(seg.x * gridSize, seg.y * gridSize, gridSize - 2, gridSize - 2);
+      });
+
+      // Gambar buah
+      ctx.fillStyle = "red";
+      ctx.fillRect(fruit.x * gridSize, fruit.y * gridSize, gridSize - 2, gridSize - 2);
+
+      // Skor
+      ctx.fillStyle = "white";
+      ctx.font = "20px sans-serif";
+      ctx.fillText("Score: " + score, 10, 30);
     }
 
-    function restart() {
-      gameOverScreen.style.display = "none";
-      canvas.style.display = "block";
-      scoreboard.style.display = "block";
-      init();
-    }
-
-    function update() {
-      if (isGameOver || (velocity.x === 0 && velocity.y === 0)) return draw();
-
+    function updateGame() {
       const head = { x: snake[0].x + velocity.x, y: snake[0].y + velocity.y };
 
-      if (head.x < 0 || head.y < 0 || head.x >= tileCount || head.y >= tileCount || snake.some(seg => seg.x === head.x && seg.y === head.y)) {
-        gameOverSound.play();
-        isGameOver = true;
-        canvas.style.display = "none";
-        scoreboard.style.display = "none";
-        gameOverScreen.style.display = "flex";
-        finalScore.innerText = `Nama: ${playerName} | Skor: ${score} | Coin: ${coins}`;
+      // Game over
+      if (
+        head.x < 0 || head.y < 0 ||
+        head.x >= tileCountX || head.y >= tileCountY ||
+        snake.some(seg => seg.x === head.x && seg.y === head.y)
+      ) {
+        alert("Game Over! Skor: " + score);
+        snake = [{ x: 10, y: 10 }];
+        velocity = { x: 0, y: 0 };
+        score = 0;
         return;
       }
 
@@ -155,40 +93,21 @@
 
       if (head.x === fruit.x && head.y === fruit.y) {
         score++;
-        eatenFruits++;
-        eatSound.play();
-        fruit = { x: Math.floor(Math.random() * tileCount), y: Math.floor(Math.random() * tileCount) };
-        if (eatenFruits % 10 === 0) {
-          coin = { x: Math.floor(Math.random() * tileCount), y: Math.floor(Math.random() * tileCount) };
-        }
-      } else if (coin && head.x === coin.x && head.y === coin.y) {
-        coins++;
-        coin = null;
+        fruit = {
+          x: Math.floor(Math.random() * tileCountX),
+          y: Math.floor(Math.random() * tileCountY),
+        };
       } else {
         snake.pop();
       }
 
-      draw();
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      ctx.drawImage(fruitImage, fruit.x * gridSize, fruit.y * gridSize, gridSize, gridSize);
-
-      if (coin) {
-        ctx.drawImage(coinImage, coin.x * gridSize, coin.y * gridSize, gridSize, gridSize);
-      }
-
-      ctx.fillStyle = "lime";
-      snake.forEach(seg => ctx.fillRect(seg.x * gridSize, seg.y * gridSize, gridSize, gridSize));
-
-      scoreboard.innerText = `Nama: ${playerName || "Guest"} | Skor: ${score} | Coin: ${coins}`;
+      drawGame();
     }
 
     function setDir(x, y) {
-      if ((velocity.x !== 0 && x !== 0) || (velocity.y !== 0 && y !== 0)) return;
-      velocity = { x, y };
+      if (velocity.x === 0 && y !== 0 || velocity.y === 0 && x !== 0) {
+        velocity = { x, y };
+      }
     }
 
     document.addEventListener("keydown", (e) => {
@@ -200,23 +119,24 @@
       }
     });
 
-    function resizeCanvas() {
-      const min = Math.min(window.innerWidth, window.innerHeight) - 60;
-      canvas.width = min;
-      canvas.height = min;
-      gridSize = min / tileCount;
-    }
+    const joystick = nipplejs.create({
+      zone: document.getElementById("nipple-container"),
+      mode: "static",
+      position: { left: "75px", bottom: "75px" },
+      color: "white"
+    });
 
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
+    joystick.on("dir", (evt, data) => {
+      if (!data) return;
+      switch (data.direction.angle) {
+        case "up": setDir(0, -1); break;
+        case "down": setDir(0, 1); break;
+        case "left": setDir(-1, 0); break;
+        case "right": setDir(1, 0); break;
+      }
+    });
 
-    setInterval(update, 120);
-
-    window.onload = () => {
-      menu.style.display = "flex";
-      canvas.style.display = "none";
-      gameOverScreen.style.display = "none";
-    };
+    setInterval(updateGame, 100);
   </script>
 </body>
 </html>
