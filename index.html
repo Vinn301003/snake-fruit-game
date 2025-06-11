@@ -55,9 +55,9 @@
     <button onclick="toggleTheme()">🌗 Ganti Tema</button>
   </div>
 
-  <!-- Audio -->
-  <audio id="eatSound" src="https://www.myinstants.com/media/sounds/minecraft-eat.mp3"></audio>
-  <audio id="gameOverSound" src="https://www.myinstants.com/media/sounds/minecraft-death.mp3"></audio>
+  <!-- Audio lokal -->
+  <audio id="eatSound" src="eat.mp3"></audio>
+  <audio id="gameOverSound" src="gameover.mp3"></audio>
 
   <script>
     const canvas = document.getElementById("game");
@@ -116,7 +116,7 @@
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw fruit as image
+      // Gambar buah
       ctx.drawImage(
         fruitImage,
         fruit.x * gridSize,
@@ -125,6 +125,7 @@
         gridSize - 2
       );
 
+      // Gambar ular
       ctx.fillStyle = "lime";
       snake.forEach(seg => {
         ctx.fillRect(seg.x * gridSize, seg.y * gridSize, gridSize - 2, gridSize - 2);
