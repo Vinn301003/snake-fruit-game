@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Snake Fruit Game 🍓</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      touch-action: none;
+    }
+    canvas {
+      background: #000;
+      border: 2px solid #fff;
+      margin-top: 20px;
+      touch-action: none;
+    }
+    h1 {
+      margin: 20px 0 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Snake Fruit Game 🍓</h1>
+  <p>Geser layar untuk mengarahkan ular</p>
+  <canvas id="game" width="400" height="400"></canvas>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const gridSize = 20;
+    const tileCount = canvas.width / gridSize;
+
+    let snake = [{ x: 10, y: 10 }];
+    let velocity = { x: 1, y: 0 };
+    let score = 0;
+
+    // Buah-buahan acak
+    const fruitImages = [
+      "https://cdn-icons-png.flaticon.com/512/590/590685.png", // strawberry
+      "https://cdn-icons-png.flaticon.com/512/590/590682.png", // watermelon
+      "https://cdn-icons-png.flaticon.com/512/590/590684.png", // apple
+      "https://cdn-icons-png.flaticon.com/512/590/590686.png", // banana
+    ];
+    let fruit = { x: 15, y: 15, img: new Image() };
+    fruit.img.src = fruitImages[0];
+
+    function spawnFruit() {
+      fruit.x = Math.floor(Math.random() * tileCount);
+      fruit.y = Math.floor(Math.random() * tileCount);
+      fruit.img.src = fruitImages[Math.floor(Math.random() * fruitImages.length)];
+    }
+
+    function gameLoop() {
+      const head = { x: snake[0].x + velocity.x, y: snake[0].y + velocity.y };
+
+      // Game over
+      if (
+        head.x < 0 || head.y < 0 ||
+        head.x >= tileCount || head.y >= tileCount ||
+        snake.some(seg => seg.x === head.x && seg.y === head.y)
+      ) {
+        alert("Game Over! Skor: " + score);
+        snake = [{ x: 10, y: 10 }];
+        velocity = { x: 1, y: 0 };
+        score = 0;
+        spawnFruit();
+        return;
+      }
+
+      snake.unshift(head);
+
+      if (head.x === fruit.x && head.y === fruit.y) {
+        score++;
+        spawnFruit();
+      } else {
+        snake.pop();
+      }
+
+      draw();
+    }
+
+    function draw() {
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Gambar ular
+      snake.forEach((seg, i) => {
+        ctx.beginPath();
+        ctx.arc(seg.x * gridSize + gridSize / 2, seg.y * gridSize + gridSize / 2, gridSize / 2 - 2, 0, Math.PI * 2);
+        ctx.fillStyle = i === 0 ? "lime" : `hsl(${(i * 30) % 360}, 100%, 50%)`;
+        ctx.fill();
+      });
+
+      // Gambar buah
+      ctx.drawImage(fruit.img, fruit.x * gridSize + 2, fruit.y * gridSize + 2, gridSize - 4, gridSize - 4);
+
+      // Skor
+      ctx.fillStyle = "white";
+      ctx.font = "16px sans-serif";
+      ctx.fillText("Score: " + score, 10, canvas.height - 10);
+    }
+
+    setInterval(gameLoop, 100);
+
+    // Geser layar (swipe)
+    let startX = 0, startY = 0;
+    canvas.addEventListener("touchstart", e => {
+      const t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+    });
+
+    canvas.addEventListener("touchend", e => {
+      const t = e.changedTouches[0];
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 10 && velocity.x !== -1) velocity = { x: 1, y: 0 };
+        else if (dx < -10 && velocity.x !== 1) velocity = { x: -1, y: 0 };
+      } else {
+        if (dy > 10 && velocity.y !== -1) velocity = { x: 0, y: 1 };
+        else if (dy < -10 && velocity.y !== 1) velocity = { x: 0, y: -1 };
+      }
+    });
+
+    spawnFruit();
+  </script>
+</body>
+</html>
