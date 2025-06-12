@@ -1,258 +1,67 @@
-<!DOCTYPE html>
-<html lang="id">
+<!DOCTYPE html><html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Snake Fruit Game</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bubble Shooter</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
+      background: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
       overflow: hidden;
-      font-family: sans-serif;
-      background: url('foto.png') no-repeat center center fixed;
-      background-size: cover;
     }
-    #overlay {
-      position: absolute;
-      top: 0;
-      width: 100%;
-      text-align: center;
-      background: rgba(0, 0, 0, 0.6);
-      color: white;
-      padding: 20px;
-      z-index: 10;
-    }
-    #game {
-      display: block;
-      margin: auto;
-      background: rgba(0,0,0,0.5);
-      max-width: 500px;
-      width: 100%;
-      height: auto;
-    }
-    #joystick {
-      position: absolute;
-      bottom: 30px;
-      left: 30px;
-      width: 100px;
-      height: 100px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 50%;
-      touch-action: none;
-    }
-    #stick {
-      width: 50px;
-      height: 50px;
-      background: white;
-      border-radius: 50%;
-      position: absolute;
-      top: 25px;
-      left: 25px;
+    canvas {
+      background: #000;
+      border: 2px solid white;
     }
   </style>
 </head>
 <body>
-  <div style="position: absolute; top: 5px; left: 5px; font-size: 10px; color: white; z-index: 20;">
-    GAME INI DIBUAT ARIANTO
-  </div>
-
-  <div id="overlay">
-    <h1>Snake Fruit Game</h1>
-    <p>Masukkan nama kamu:</p>
-    <input id="playerName" type="text" placeholder="Nama" />
-    <br /><br />
-    <button onclick="startGame()">Play</button>
-    <div id="scoreDisplay"></div>
-  </div>
-
-  <canvas id="game"></canvas>
-
-  <div id="joystick">
-    <div id="stick"></div>
-  </div>
-
+  <canvas id="game" width="480" height="640"></canvas>
   <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
-    canvas.width = Math.min(window.innerWidth, 500);
-    canvas.height = window.innerHeight;
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');const ROWS = 10;
+const COLS = 8;
+const RADIUS = 24;
+const COLORS = ['red', 'blue', 'green', 'yellow', 'purple'];
+const OFFSET = 2;
 
-    const tileSize = 20;
-    const tileX = Math.floor(canvas.width / tileSize);
-    const tileY = Math.floor(canvas.height / tileSize);
+let grid = [];
+let shooter = {
+  x: canvas.width / 2,
+  y: canvas.height - RADIUS,
+  angle: -Math.PI / 2,
+  color: COLORS[Math.floor(Math.random() * COLORS.length)]
+};
 
-    let snake = [{ x: 10, y: 10 }];
-    let fruit = { x: 15, y: 15, type: "🍎" };
-    let coins = [];
-    let velocity = { x: 0, y: 0 };
-    let score = 0;
-    let coinCount = 0;
-    let eatenFruits = 0;
-    let gameInterval;
-    let playerName = "";
-    let gameRunning = false;
-
-    const fruitTypes = ["🍎", "🍌", "🍇", "🍉", "🍓", "🍍"];
-
-    function resetGame() {
-      snake = [{ x: 10, y: 10 }];
-      fruit = {
-        x: Math.floor(Math.random() * tileX),
-        y: Math.floor(Math.random() * tileY),
-        type: fruitTypes[Math.floor(Math.random() * fruitTypes.length)]
-      };
-      coins = [];
-      velocity = { x: 0, y: 0 };
-      score = 0;
-      coinCount = 0;
-      eatenFruits = 0;
-    }
-
-    function startGame() {
-      playerName = document.getElementById("playerName").value.trim() || "Player";
-      document.getElementById("overlay").style.display = "none";
-      resetGame();
-      gameRunning = true;
-      gameInterval = setInterval(gameLoop, 100);
-    }
-
-    function endGame() {
-      clearInterval(gameInterval);
-      gameRunning = false;
-      const highScore = parseInt(localStorage.getItem("highScore") || "0");
-      if (score > highScore) localStorage.setItem("highScore", score);
-
-      document.getElementById("overlay").innerHTML = `
-        <h1>Game Over</h1>
-        <p>${playerName}, Skor: ${score}, Koin: ${coinCount}</p>
-        <p>High Score: ${localStorage.getItem("highScore")}</p>
-        <button id="retryBtn">Retry</button>
-      `;
-      document.getElementById("overlay").style.display = "block";
-      document.getElementById("retryBtn").addEventListener("click", startGame);
-    }
-
-    function gameLoop() {
-      if (velocity.x === 0 && velocity.y === 0) {
-        drawGame();
-        return;
-      }
-
-      const head = { x: snake[0].x + velocity.x, y: snake[0].y + velocity.y };
-
-      if (
-        head.x < 0 || head.y < 0 || head.x >= tileX || head.y >= tileY ||
-        snake.some(seg => seg.x === head.x && seg.y === head.y)
-      ) {
-        endGame();
-        return;
-      }
-
-      snake.unshift(head);
-
-      if (head.x === fruit.x && head.y === fruit.y) {
-        score++;
-        eatenFruits++;
-        fruit = {
-          x: Math.floor(Math.random() * tileX),
-          y: Math.floor(Math.random() * tileY),
-          type: fruitTypes[Math.floor(Math.random() * fruitTypes.length)]
-        };
-        if (eatenFruits % 10 === 0) {
-          coins.push({
-            x: Math.floor(Math.random() * tileX),
-            y: Math.floor(Math.random() * tileY)
-          });
-        }
+function initGrid() {
+  for (let row = 0; row < ROWS; row++) {
+    grid[row] = [];
+    for (let col = 0; col < COLS; col++) {
+      if (row < 5) {
+        const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        grid[row][col] = { color };
       } else {
-        snake.pop();
+        grid[row][col] = null;
       }
-
-      coins = coins.filter(c => {
-        if (c.x === head.x && c.y === head.y) {
-          coinCount++;
-          return false;
-        }
-        return true;
-      });
-
-      drawGame();
     }
+  }
+}
 
-    function drawGame() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Ular dengan gradasi warna
-      snake.forEach((seg, index) => {
-        const color = `hsl(${(index / snake.length) * 120}, 100%, 50%)`;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(seg.x * tileSize + tileSize / 2, seg.y * tileSize + tileSize / 2, tileSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      // Buah (pakai emoji)
-      ctx.font = `${tileSize}px serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(fruit.type, fruit.x * tileSize + tileSize / 2, fruit.y * tileSize + tileSize / 2);
-
-      // Koin
-      ctx.fillStyle = "gold";
-      coins.forEach(c => {
-        ctx.beginPath();
-        ctx.arc(c.x * tileSize + tileSize / 2, c.y * tileSize + tileSize / 2, tileSize / 3, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      ctx.fillStyle = "white";
-      ctx.font = "16px sans-serif";
-      ctx.fillText(`${playerName} | Skor: ${score} | Koin: ${coinCount}`, 10, 20);
-    }
-
-    // Keyboard kontrol
-    document.addEventListener("keydown", e => {
-      if (!gameRunning) return;
-      if (e.key === "ArrowUp" && velocity.y === 0) velocity = { x: 0, y: -1 };
-      if (e.key === "ArrowDown" && velocity.y === 0) velocity = { x: 0, y: 1 };
-      if (e.key === "ArrowLeft" && velocity.x === 0) velocity = { x: -1, y: 0 };
-      if (e.key === "ArrowRight" && velocity.x === 0) velocity = { x: 1, y: 0 };
-    });
-
-    // Joystick
-    const joystick = document.getElementById("joystick");
-    const stick = document.getElementById("stick");
-    let dragging = false;
-
-    joystick.addEventListener("touchstart", () => {
-      dragging = true;
-    });
-
-    joystick.addEventListener("touchend", () => {
-      dragging = false;
-      stick.style.left = "25px";
-      stick.style.top = "25px";
-    });
-
-    joystick.addEventListener("touchmove", e => {
-      if (!dragging) return;
-      const rect = joystick.getBoundingClientRect();
-      const touch = e.touches[0];
-      const x = touch.clientX - rect.left - 50;
-      const y = touch.clientY - rect.top - 50;
-
-      stick.style.left = `${Math.max(0, Math.min(50 + x, 75))}px`;
-      stick.style.top = `${Math.max(0, Math.min(50 + y, 75))}px`;
-
-      if (Math.abs(x) > Math.abs(y)) {
-        velocity = { x: x > 0 ? 1 : -1, y: 0 };
-      } else {
-        velocity = { x: 0, y: y > 0 ? 1 : -1 };
+function drawGrid() {
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const bubble = grid[row][col];
+      if (bubble) {
+        drawBubble(col * RADIUS * 2 + RADIUS, row * RADIUS * 2 + RADIUS, bubble.color);
       }
+    }
+  }
+}
 
-      e.preventDefault();
-    }, { passive: false });
-  </script>
-</body>
-</html>
+function drawBubble(x,
+
+                    
