@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -6,7 +7,7 @@
   <style>
     body {
       margin: 0;
-      background: #222;
+      background: #000;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -14,7 +15,6 @@
       overflow: hidden;
     }
     canvas {
-      background: #000;
       border: 2px solid white;
     }
   </style>
@@ -23,45 +23,102 @@
   <canvas id="game" width="480" height="640"></canvas>
   <script>
     const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');const ROWS = 10;
-const COLS = 8;
-const RADIUS = 24;
-const COLORS = ['red', 'blue', 'green', 'yellow', 'purple'];
-const OFFSET = 2;
+    const ctx = canvas.getContext('2d');
 
-let grid = [];
-let shooter = {
-  x: canvas.width / 2,
-  y: canvas.height - RADIUS,
-  angle: -Math.PI / 2,
-  color: COLORS[Math.floor(Math.random() * COLORS.length)]
-};
+    const ROWS = 10;
+    const COLS = 8;
+    const RADIUS = 24;
+    const COLORS = ['red', 'blue', 'green', 'yellow', 'purple'];
 
-function initGrid() {
-  for (let row = 0; row < ROWS; row++) {
-    grid[row] = [];
-    for (let col = 0; col < COLS; col++) {
-      if (row < 5) {
-        const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-        grid[row][col] = { color };
-      } else {
-        grid[row][col] = null;
+    let grid = [];
+    let shooter = {
+      x: canvas.width / 2,
+      y: canvas.height - RADIUS - 10,
+      angle: -Math.PI / 2,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      shooting: false,
+      shotX: 0,
+      shotY: 0
+    };
+
+    const bgImage = new Image();
+    bgImage.src = 'foto.png';
+
+    bgImage.onload = () => {
+      initGrid();
+      requestAnimationFrame(gameLoop);
+    };
+
+    function initGrid() {
+      for (let row = 0; row < ROWS; row++) {
+        grid[row] = [];
+        for (let col = 0; col < COLS; col++) {
+          if (row < 5) {
+            const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+            grid[row][col] = { color };
+          } else {
+            grid[row][col] = null;
+          }
+        }
       }
     }
-  }
-}
 
-function drawGrid() {
-  for (let row = 0; row < ROWS; row++) {
-    for (let col = 0; col < COLS; col++) {
-      const bubble = grid[row][col];
-      if (bubble) {
-        drawBubble(col * RADIUS * 2 + RADIUS, row * RADIUS * 2 + RADIUS, bubble.color);
+    function drawBubble(x, y, color) {
+      ctx.beginPath();
+      ctx.arc(x, y, RADIUS - 2, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = 'white';
+      ctx.stroke();
+    }
+
+    function drawGrid() {
+      for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+          const bubble = grid[row][col];
+          if (bubble) {
+            const x = col * RADIUS * 2 + RADIUS;
+            const y = row * RADIUS * 2 + RADIUS;
+            drawBubble(x, y, bubble.color);
+          }
+        }
       }
     }
-  }
-}
 
-function drawBubble(x,
+    function drawShooter() {
+      drawBubble(shooter.x, shooter.y, shooter.color);
+    }
 
-                    
+    function shootBubble() {
+      if (!shooter.shooting) {
+        shooter.shotX = shooter.x;
+        shooter.shotY = shooter.y;
+        shooter.shooting = true;
+      }
+    }
+
+    function updateShot() {
+      if (shooter.shooting) {
+        shooter.shotY -= 5;
+        drawBubble(shooter.shotX, shooter.shotY, shooter.color);
+
+        if (shooter.shotY <= 0) {
+          shooter.shooting = false;
+          shooter.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        }
+      }
+    }
+
+    canvas.addEventListener('click', shootBubble);
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+      drawGrid();
+      drawShooter();
+      updateShot();
+      requestAnimationFrame(gameLoop);
+    }
+  </script>
+</body>
+</html>
