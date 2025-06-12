@@ -83,7 +83,7 @@
     const tileY = Math.floor(canvas.height / tileSize);
 
     let snake = [{ x: 10, y: 10 }];
-    let fruit = { x: 15, y: 15 };
+    let fruit = { x: 15, y: 15, type: "🍎" };
     let coins = [];
     let velocity = { x: 0, y: 0 };
     let score = 0;
@@ -93,9 +93,15 @@
     let playerName = "";
     let gameRunning = false;
 
+    const fruitTypes = ["🍎", "🍌", "🍇", "🍉", "🍓", "🍍"];
+
     function resetGame() {
       snake = [{ x: 10, y: 10 }];
-      fruit = { x: Math.floor(Math.random() * tileX), y: Math.floor(Math.random() * tileY) };
+      fruit = {
+        x: Math.floor(Math.random() * tileX),
+        y: Math.floor(Math.random() * tileY),
+        type: fruitTypes[Math.floor(Math.random() * fruitTypes.length)]
+      };
       coins = [];
       velocity = { x: 0, y: 0 };
       score = 0;
@@ -116,16 +122,15 @@
       gameRunning = false;
       const highScore = parseInt(localStorage.getItem("highScore") || "0");
       if (score > highScore) localStorage.setItem("highScore", score);
+
       document.getElementById("overlay").innerHTML = `
         <h1>Game Over</h1>
         <p>${playerName}, Skor: ${score}, Koin: ${coinCount}</p>
         <p>High Score: ${localStorage.getItem("highScore")}</p>
-        <button>Retry</button>
+        <button id="retryBtn">Retry</button>
       `;
       document.getElementById("overlay").style.display = "block";
-      setTimeout(() => {
-        document.querySelector("#overlay button")?.addEventListener("click", startGame);
-      }, 0);
+      document.getElementById("retryBtn").addEventListener("click", startGame);
     }
 
     function gameLoop() {
@@ -151,7 +156,8 @@
         eatenFruits++;
         fruit = {
           x: Math.floor(Math.random() * tileX),
-          y: Math.floor(Math.random() * tileY)
+          y: Math.floor(Math.random() * tileY),
+          type: fruitTypes[Math.floor(Math.random() * fruitTypes.length)]
         };
         if (eatenFruits % 10 === 0) {
           coins.push({
@@ -176,19 +182,24 @@
 
     function drawGame() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "green";
-      snake.forEach(seg => {
+
+      // Ular dengan gradasi warna
+      snake.forEach((seg, index) => {
+        const color = `hsl(${(index / snake.length) * 120}, 100%, 50%)`;
+        ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(seg.x * tileSize + tileSize / 2, seg.y * tileSize + tileSize / 2, tileSize / 2, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      ctx.fillStyle = "red";
-      ctx.beginPath();
-      ctx.arc(fruit.x * tileSize + tileSize / 2, fruit.y * tileSize + tileSize / 2, tileSize / 2, 0, Math.PI * 2);
-      ctx.fill();
+      // Buah (pakai emoji)
+      ctx.font = `${tileSize}px serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(fruit.type, fruit.x * tileSize + tileSize / 2, fruit.y * tileSize + tileSize / 2);
 
-      ctx.fillStyle = "yellow";
+      // Koin
+      ctx.fillStyle = "gold";
       coins.forEach(c => {
         ctx.beginPath();
         ctx.arc(c.x * tileSize + tileSize / 2, c.y * tileSize + tileSize / 2, tileSize / 3, 0, Math.PI * 2);
@@ -200,6 +211,7 @@
       ctx.fillText(`${playerName} | Skor: ${score} | Koin: ${coinCount}`, 10, 20);
     }
 
+    // Keyboard kontrol
     document.addEventListener("keydown", e => {
       if (!gameRunning) return;
       if (e.key === "ArrowUp" && velocity.y === 0) velocity = { x: 0, y: -1 };
@@ -208,6 +220,7 @@
       if (e.key === "ArrowRight" && velocity.x === 0) velocity = { x: 1, y: 0 };
     });
 
+    // Joystick
     const joystick = document.getElementById("joystick");
     const stick = document.getElementById("stick");
     let dragging = false;
